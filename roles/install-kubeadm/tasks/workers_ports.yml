@@ -1,0 +1,13 @@
+- name: Kubelet API
+  ansible.posix.firewalld:
+    port: 10250/tcp
+    permanent: yes
+    immediate: yes
+    state: enabled
+
+- name: Kubelet API
+  ansible.posix.firewalld:
+    port: 30000-32767/tcp
+    permanent: yes
+    immediate: yes
+    state: enabled

@@ -1,0 +1,6 @@
+- hosts:
+  - kubecluster
+  become: true
+  roles:
+    #- install-kubeadm
+    - create-cluster-kubeadm

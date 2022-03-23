@@ -1,0 +1,93 @@
+- name: Make sure that the br_netfilter module is loaded.
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+#As a requirement for your Linux Node's iptables to correctly see bridged traffic, you should ensure net.bridge.bridge-nf-call-iptables is set to 1 in your sysctl config, 
+
+- name: Ensure /etc/modules-load.d/k8s.conf is setted correctly
+  ansible.builtin.lineinfile:
+    path: /etc/modules-load.d/k8s.conf
+    regexp: '^br_netfilter'
+    line: br_netfilter
+    create: yes
+
+- name: Ensure /etc/sysctl.d/k8s.conf is setted correctly
+  lineinfile:
+    dest: /etc/sysctl.d/k8s.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: yes
+  loop:
+    - { regexp: '^net.bridge.bridge-nf-call-ip6tables', line: 'net.bridge.bridge-nf-call-ip6tables = 1' }
+    - { regexp: '^net.bridge.bridge-nf-call-iptables', line: 'net.bridge.bridge-nf-call-iptables = 1' }
+  
+- name: Reload kernel parameters
+  ansible.builtin.command: sudo sysctl --system
+  register: mymotd
+
+
+#- name: Open required port on master nodes 
+#  include_tasks:
+#    file: master_ports.yml
+#  when: inventory_hostname in groups['kube_masters']
+#
+#- name: Open required port on worker nodes 
+#  include_tasks:
+#    file: workers_ports.yml
+#  when: inventory_hostname in groups['kube_workers']
+  
+
+- name: Populate service facts
+  service_facts:
+  
+- name: Install Docker as container runtime  
+  include_tasks:
+    file: install_docker.yml
+  when: " not 'docker.service' in services"
+
+
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: Disable swap
+  command: "{{ item }}"
+  loop:
+   - "swapoff -a"
+   - "mount -a"
+  
+- name: Render /etc/yum.repos.d/kubernetes.repo  file
+  template:
+    src: kubernetes.repo.j2
+    dest: /etc/yum.repos.d/kubernetes.repo
+
+- name: Set SELinux in permissive mod1
+  command: "setenforce 0"
+
+- name: Set SELinux in permissive mod2
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: SELINUX=permissive
+
+- name: Installing kubeadm, kubelet and kubectl
+  yum:
+    name: 
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    disable_excludes: kubernetes
+    update_cache: yes
+  
+- name: Start and enable kubelet
+  systemd:
+    name: kubelet
+    enabled: yes
+    state: started
