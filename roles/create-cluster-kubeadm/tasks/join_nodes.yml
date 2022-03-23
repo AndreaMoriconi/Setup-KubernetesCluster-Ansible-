@@ -1,0 +1,27 @@
+- name: joining worker nodes
+  shell: "{{ hostvars['kube_master'].join_command }} >> node_joined.txt"
+  args:
+    chdir: $HOME
+    creates: node_joined.txt
+  when: inventory_hostname in groups['kube_workers']
+
+
+- name: Fetch the admin.conf from master to bastion
+  run_once: yes
+  fetch: 
+    src: /etc/kubernetes/admin.conf 
+    dest: /tmp/admin.conf
+    flat: yes
+  when: "{{ inventory_hostname == 'kube_master' }}"
+
+- name: Ensures .kube dir exists
+  file: 
+    path: /home/{{ user }}/.kube 
+    state: directory
+
+- name: Copy the file from bastion to workers
+  copy: 
+    src: /tmp/admin.conf 
+    dest: /home/{{user}}/.kube/config
+    owner: '{{ user }}'
+  when: inventory_hostname in groups['kube_workers']

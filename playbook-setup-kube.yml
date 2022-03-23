@@ -2,5 +2,5 @@
   - kubecluster
   become: true
   roles:
-    #- install-kubeadm
+    - install-kubeadm
     - create-cluster-kubeadm

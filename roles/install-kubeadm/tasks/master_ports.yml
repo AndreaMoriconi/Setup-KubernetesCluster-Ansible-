@@ -1,63 +1,67 @@
+#
+#- name: kubernetes API server
+#  ansible.posix.firewalld:
+#    port: 6443/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#- name: kubernetes API server
+#  ansible.posix.firewalld:
+#    port: 8080/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: kubernetes scheduler
+#  ansible.posix.firewalld:
+#    port: 10251/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: etcd server client API
+#  ansible.posix.firewalld:
+#    port: 2379-2380/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: Kubelet API
+#  ansible.posix.firewalld:
+#    port: 10250/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: kube-controller-manager
+#  ansible.posix.firewalld:
+#    port: 10252/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: kube-scheduler
+#  ansible.posix.firewalld:
+#    port: 10259/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#
+#- name: kube-controller-manager
+#  ansible.posix.firewalld:
+#    port: 10257/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
+#- name: kubelet API readonly
+#  ansible.posix.firewalld:
+#    port: 10255/tcp
+#    permanent: yes
+#    immediate: yes
+#    state: enabled
 
-- name: kubernetes API server
-  ansible.posix.firewalld:
-    port: 6443/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-- name: kubernetes API server
-  ansible.posix.firewalld:
-    port: 8080/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: kubernetes scheduler
-  ansible.posix.firewalld:
-    port: 10251/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: etcd server client API
-  ansible.posix.firewalld:
-    port: 2379-2380/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: Kubelet API
-  ansible.posix.firewalld:
-    port: 10250/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: kube-controller-manager
-  ansible.posix.firewalld:
-    port: 10252/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: kube-scheduler
-  ansible.posix.firewalld:
-    port: 10259/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
-- name: kube-controller-manager
-  ansible.posix.firewalld:
-    port: 10257/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-- name: kubelet API readonly
-  ansible.posix.firewalld:
-    port: 10255/tcp
-    permanent: yes
-    immediate: yes
-    state: enabled
-
+- name: stop firewalld
+  systemd:
+    name: firewalld
+    state: stopped
 # TCP 6783 and UDP 6783/6784. per weave 

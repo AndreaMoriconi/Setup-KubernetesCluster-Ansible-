@@ -1,0 +1,130 @@
+- name: debug
+  vars:
+    interface_var_name: "ansible_{{ kube_network_interface }}"  ## needed because cannot use a variable inside oneother variable :'(
+  debug:
+    msg: "kubeadm init --pod-network-cidr {{ pod_network }} --apiserver-advertise-address={{ lookup('vars', interface_var_name)['ipv4']['address'] }}"
+  tags: debug
+
+- name : verify if cluster is initialized
+  stat:
+    path: /etc/kubernetes/manifests/kube-apiserver.yaml
+  register: manifest
+  tags: debug
+
+- name: debug
+  debug:
+    msg:  manifest non esiste
+  when: not manifest.stat.exists
+  tags: debug
+
+
+
+- name: initialize the cluster1 
+  vars:
+    interface_var_name: "ansible_{{ kube_network_interface }}"
+  shell: 
+    cmd: "kubeadm init --pod-network-cidr {{ pod_network }} --apiserver-advertise-address={{ lookup('vars', interface_var_name)['ipv4']['address'] }} >> kubeadm_init_res.txt"
+  args:
+    chdir: $HOME
+  when: 
+    - inventory_hostname in groups['kube_masters']
+    - controlplane_endpoint is not defined
+    - not manifest.stat.exists
+
+- name: initialize the cluster2
+  vars:
+    interface_var_name: "ansible_{{ kube_network_interface }}"
+  shell: "kubeadm init --pod-network-cidr {{ pod_network }} --apiserver-advertise-address={{ lookup('vars', interface_var_name)['ipv4']['address'] }} --control-plane-endpoint {{ controlplane_endpoint }} kubeadm_init_res"
+  args:
+    chdir: $HOME
+  when: 
+    - inventory_hostname in groups['kube_masters']
+    - controlplane_endpoint is defined
+    - not manifest.stat.exists
+
+- name: debug
+  debug:
+    msg: " ip mach+cina {{ ansible_eth1.ipv4.address }}"
+  when: 
+    - inventory_hostname in groups['kube_masters']
+    - controlplane_endpoint is not defined
+  tags: debug
+
+- name: debug
+  debug:
+    msg: " ip mach+cina  is defined {{ ansible_eth1.ipv4.address }}"
+  when: 
+    - inventory_hostname in groups['kube_masters']
+    - controlplane_endpoint is defined
+  tags: debug
+
+
+- name: make kubectl work for {{ user }}
+  file:
+    path: /home/{{ user }}/.kube
+    owner: '{{ user }}'
+    group: '{{ user }}'
+    state: directory
+
+
+- name: copy kube config file
+  copy: 
+    src: /etc/kubernetes/admin.conf
+    dest: /home/{{ user }}/.kube/config
+    owner: '{{ user }}'
+    group: '{{ user }}'
+    remote_src: yes
+
+
+- name : verify if calico is installed
+  stat:
+    path: /etc/cni/net.d/10-calico.conflist 
+  register: calico
+  tags: debug
+  
+- name: download calico.yaml
+  get_url:
+    url: https://projectcalico.docs.tigera.io/manifests/calico.yaml
+    dest: /home/{{ user }}/.kube/calico.yaml
+    owner: '{{ user }}'
+  tags: debug
+
+
+- name: edit calico.yaml
+  lineinfile:
+    path: /home/{{ user }}/.kube/calico.yaml
+    search_string: '{{ item.search_string }}'
+    line: '{{ item.line }}'
+  loop:
+    - { search_string: 'CALICO_IPV4POOL_CIDR', line: '            - name: CALICO_IPV4POOL_CIDR' }
+    - { search_string: '192.168.0.0', line: '              value: "{{ pod_network }}"' }
+  tags: debug
+
+
+- name: edit calico.yaml
+  lineinfile:
+    path: /home/{{ user }}/.kube/calico.yaml
+    insertafter: '{{ item.insertafeter }}'
+    line: '{{ item.line }}'
+  loop:
+    - { insertafeter: 'Cluster type to identify the deployment type', line: '            - name: IP_AUTODETECTION_METHOD' }
+    - { insertafeter: 'IP_AUTODETECTION_METHOD', line: '              value: "interface=eth1"' }
+  tags: debug
+
+
+- name: install CALICO Pod network add-on 
+  shell: 
+    cmd: kubectl apply -f /home/{{ user }}/.kube/calico.yaml
+  become_user: '{{ user }}'
+  when: 
+  - inventory_hostname in groups['kube_masters']
+  - not calico.stat.exists
+
+- name: get join command
+  shell: kubeadm token create --print-join-command
+  register: join_command_raw
+
+
+- name: set join command
+  set_fact:
+    join_command: "{{ join_command_raw.stdout_lines[0] }}"

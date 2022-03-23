@@ -27,15 +27,15 @@
   register: mymotd
 
 
-#- name: Open required port on master nodes 
-#  include_tasks:
-#    file: master_ports.yml
-#  when: inventory_hostname in groups['kube_masters']
-#
-#- name: Open required port on worker nodes 
-#  include_tasks:
-#    file: workers_ports.yml
-#  when: inventory_hostname in groups['kube_workers']
+- name: Open required port on master nodes 
+  include_tasks:
+    file: master_ports.yml
+  when: inventory_hostname in groups['kube_masters']
+
+- name: Open required port on worker nodes 
+  include_tasks:
+    file: workers_ports.yml
+  when: inventory_hostname in groups['kube_workers']
   
 
 - name: Populate service facts
