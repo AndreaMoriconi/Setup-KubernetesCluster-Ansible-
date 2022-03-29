@@ -1,5 +1,0 @@
-kube_network_interface: eth1
-user: vagrant
-pod_network: 10.244.0.0/16
-##controlplane_endpoint: 172.16.1.250  #only higth availability cluster (multiple master nodes)
-

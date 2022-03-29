@@ -2,5 +2,4 @@
   - kubecluster
   become: true
   roles:
-    - install-kubeadm
-    - create-cluster-kubeadm
+    - ansible-role-kubernetes
