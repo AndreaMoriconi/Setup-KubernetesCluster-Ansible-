@@ -1,3 +1,7 @@
+- name: prepare host
+  include_tasks:
+    file: prepare_hosts.yml
+
 - name: initialize cluster on master
   include_tasks:
     file: initialize_cluster.yml
@@ -6,5 +10,3 @@
 - name: join worker nodes
   include_tasks:
     file: join_nodes.yml
-
-
